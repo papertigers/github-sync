@@ -87,7 +87,7 @@ fn main() -> Result<()> {
     opts.optopt(
         "t",
         "",
-        "max number of threads used to sync repos, defaults to 1",
+        "max number of threads used to sync repos (default 1)",
         "THREADS",
     );
 
