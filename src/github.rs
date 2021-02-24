@@ -130,7 +130,7 @@ impl Github {
             token: token.into(),
             client: Arc::new(
                 Client::builder()
-                    .user_agent("github-org-sync")
+                    .user_agent("github-sync")
                     .default_headers(headers)
                     .build()
                     .unwrap(),

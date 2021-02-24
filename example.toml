@@ -3,6 +3,7 @@ token = "foobarbazfoobarbazfoobarbazfoobarbaz"
 
 organizations = [
     "illumos",
+    "omniosorg",
 ]
 
 users = [
