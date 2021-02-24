@@ -17,6 +17,7 @@ pub struct Repo {
     pub name: String,
     pub full_name: String,
     pub clone_url: String,
+    pub default_branch: String,
 }
 
 pub enum RepoType {

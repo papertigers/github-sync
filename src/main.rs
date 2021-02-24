@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 mod config;
+mod git;
 mod github;
 use github::{Github, Repo, RepoType};
 
@@ -23,10 +24,22 @@ fn create_logger() -> Logger {
 
 fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
     let path = ctx.dir.join(&repo.full_name);
-    info!(ctx.log, "processing {} into {:?}", repo.name, path);
 
-    // TODO clone or update the repo
+    // attempt to clone the repo first
+    if let Err(e) = git::clone_repo(&path, repo) {
+        match e.downcast_ref::<git2::Error>() {
+            None => return Err(e),
+            Some(rc) => {
+                if rc.code() == git2::ErrorCode::Exists {
+                    git::update_repo(&path, repo)?;
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+    };
 
+    info!(ctx.log, "synced {} into {:?}", repo.name, path);
     Ok(())
 }
 

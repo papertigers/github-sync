@@ -14,6 +14,7 @@ getopts = "0.2.21"
 slog = "2.7.0"
 slog-term = "2.8.0"
 rayon = "1.5.0"
+git2 = "0.13.17"
 
 [dependencies.openssl]
 version = "0.10"
