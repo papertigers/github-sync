@@ -26,17 +26,8 @@ fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
     let path = ctx.dir.join(&repo.full_name);
 
     // attempt to clone the repo first
-    if let Err(e) = git::clone_repo(&path, repo) {
-        match e.downcast_ref::<git2::Error>() {
-            None => return Err(e),
-            Some(rc) => {
-                if rc.code() == git2::ErrorCode::Exists {
-                    git::update_repo(&path, repo)?;
-                } else {
-                    return Err(anyhow!("{} - {}", repo.name, e));
-                }
-            }
-        }
+    if let Err(e) = git::clone_or_update(&path, repo) {
+        return Err(anyhow!("[{}] failed sync - {}", repo.name, e));
     };
 
     info!(ctx.log, "synced {} into {:?}", repo.name, path);
