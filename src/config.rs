@@ -1,14 +1,21 @@
 use anyhow::Result;
 use serde::Deserialize;
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 
 #[derive(Deserialize, Debug)]
+pub struct OwnerOpts {
+    pub repos: BTreeSet<String>,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Config {
     pub organizations: Option<BTreeSet<String>>,
     pub users: Option<BTreeSet<String>>,
+    pub owner: Option<HashMap<String, OwnerOpts>>,
     pub user: Option<String>,
     pub token: Option<String>,
 }

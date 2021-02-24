@@ -139,9 +139,6 @@ impl Github {
     }
 
     /// Form a request to the github API.
-    ///
-    /// Note: In order to satisfy the query option in the None case one can pass None::<&()>.
-    /// This is a wart, but one I am wiling to accept since request is an internal API call.
     fn request(
         &self,
         method: Method,
@@ -172,16 +169,29 @@ impl Github {
         match res.status() {
             reqwest::StatusCode::OK => (),
             sc => {
-                return Err(anyhow!(
-                    "Github API Error ({}) - {}",
-                    sc,
-                    res.text().expect("failed to get error body")
-                ))
+                let url = res.url().as_str().to_string();
+                let msg = res.text().expect("failed to get error body");
+                return Err(anyhow!("{} ({}) - {}", url, sc, msg));
             }
         };
 
         Ok(res)
     }
+
+    /// Get a repo by owner and name.
+    pub fn get_single_repo<O, R>(&self, owner: O, repo: R) -> Result<Repo>
+    where
+        O: AsRef<str>,
+        R: AsRef<str>,
+    {
+        let path = format!("repos/{}/{}", owner.as_ref(), repo.as_ref());
+        let req = self.request(Method::GET, &path, None)?;
+        let res = self.execute(req)?;
+        let repo: Repo = res.json()?;
+
+        Ok(repo)
+    }
+
     /// Get all of the public repos for a github user or organization.
     pub fn get_repos(&self, name: &str, rt: RepoType) -> GithubRepos {
         GithubRepos::new(&self, name, rt)

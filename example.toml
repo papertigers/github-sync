@@ -9,3 +9,13 @@ organizations = [
 users = [
     "papertigers",
 ]
+
+[owner.bahamas10]
+repos = [
+    "rust-zonename",
+]
+
+[owner.oxidecomputer]
+repos = [
+    "propolis",
+]

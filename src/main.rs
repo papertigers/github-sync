@@ -21,13 +21,26 @@ fn create_logger() -> Logger {
     Logger::root(slog_term::FullFormat::new(plain).build().fuse(), o!())
 }
 
-fn sync_repo(ctx: &mut Ctx, repo: Repo) -> Result<()> {
-    let path = ctx.dir.join(repo.full_name);
+fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
+    let path = ctx.dir.join(&repo.full_name);
     info!(ctx.log, "processing {} into {:?}", repo.name, path);
 
     // TODO clone or update the repo
 
     Ok(())
+}
+
+fn process_owner_repos(ctx: Ctx, repos: &[Repo]) {
+    let errors: Vec<_> = repos
+        .into_par_iter()
+        .map_with(ctx.clone(), |c, r| sync_repo(c, r))
+        .filter(|r| r.is_err())
+        .collect();
+
+    // XXX For now log errors in a non fatal way.
+    for e in errors {
+        error!(ctx.log, "{:?}", e);
+    }
 }
 
 fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) -> Result<()> {
@@ -38,7 +51,7 @@ fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) -> Result<()> {
         .get_repos(name, rt)
         .into_iter()
         .par_bridge()
-        .map_with(ctx.clone(), |c, r| sync_repo(c, r?))
+        .map_with(ctx.clone(), |c, r| sync_repo(c, &r?))
         .filter(|r| r.is_err())
         .collect();
 
@@ -94,6 +107,25 @@ fn main() -> Result<()> {
         .num_threads(threads)
         .build_global()
         .context("failed to build thread pool")?;
+
+    if let Some(owner) = config.owner {
+        for (ref o, opts) in owner {
+            let (repos, errors): (Vec<_>, Vec<_>) = opts
+                .repos
+                .par_iter()
+                .map(|n| ctx.gh.get_single_repo(o, n))
+                .partition(Result::is_ok);
+            let repos: Vec<_> = repos.into_iter().map(Result::unwrap).collect();
+            let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
+
+            // XXX For now log errors in a non fatal way.
+            for e in errors {
+                error!(ctx.log, "{}", e);
+            }
+
+            process_owner_repos(ctx.clone(), &repos);
+        }
+    }
 
     if let Some(orgs) = config.organizations {
         for org in orgs {
