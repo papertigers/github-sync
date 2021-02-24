@@ -302,7 +302,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "github-org-sync"
+name = "github-sync"
 version = "0.1.0"
 dependencies = [
  "anyhow",

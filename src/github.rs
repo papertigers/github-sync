@@ -55,17 +55,6 @@ impl GithubOrgRepos {
         let req = self.client.request(Method::GET, &self.path, Some(&query))?;
         let res = self.client.execute(req)?;
 
-        match res.status() {
-            reqwest::StatusCode::OK => (),
-            sc => {
-                return Err(anyhow!(
-                    "Github API Error ({}) - {}",
-                    sc,
-                    res.text().expect("failed to get error body")
-                ))
-            }
-        };
-
         if let Some(header) = res.headers().get("link") {
             for line in header.to_str()?.split(',') {
                 if let Some(cap) = PAGE.captures(line) {
@@ -169,7 +158,19 @@ impl Github {
 
     /// Execute a `Request` via the internal `Client`.
     fn execute(&self, req: Request) -> Result<Response> {
-        Ok(self.client.execute(req)?)
+        let res = self.client.execute(req)?;
+        match res.status() {
+            reqwest::StatusCode::OK => (),
+            sc => {
+                return Err(anyhow!(
+                    "Github API Error ({}) - {}",
+                    sc,
+                    res.text().expect("failed to get error body")
+                ))
+            }
+        };
+
+        Ok(res)
     }
 
     /// Get all of the public repos for a github organization.
