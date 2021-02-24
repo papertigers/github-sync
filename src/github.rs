@@ -19,7 +19,12 @@ pub struct Repo {
     pub clone_url: String,
 }
 
-pub struct GithubOrgRepos {
+pub enum RepoType {
+    User,
+    Org,
+}
+
+pub struct GithubRepos {
     client: Arc<Github>,
     path: String,
     repos: <Vec<Repo> as IntoIterator>::IntoIter,
@@ -28,11 +33,16 @@ pub struct GithubOrgRepos {
     last: u32,
 }
 
-impl GithubOrgRepos {
-    fn new(client: &Github, org: &str) -> Self {
+impl GithubRepos {
+    fn new(client: &Github, name: &str, rt: RepoType) -> Self {
+        let path = match rt {
+            RepoType::User => format!("users/{}/repos", name),
+            RepoType::Org => format!("orgs/{}/repos", name),
+        };
+
         Self {
             client: Arc::new(client.clone()),
-            path: format!("orgs/{}/repos", org),
+            path,
             repos: vec![].into_iter(),
             per_page: 100, // github max
             page: 0,
@@ -86,7 +96,7 @@ impl GithubOrgRepos {
     }
 }
 
-impl Iterator for GithubOrgRepos {
+impl Iterator for GithubRepos {
     type Item = Result<Repo>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -172,9 +182,8 @@ impl Github {
 
         Ok(res)
     }
-
-    /// Get all of the public repos for a github organization.
-    pub fn get_org_repos(&self, org: &str) -> GithubOrgRepos {
-        GithubOrgRepos::new(&self, org)
+    /// Get all of the public repos for a github user or organization.
+    pub fn get_repos(&self, name: &str, rt: RepoType) -> GithubRepos {
+        GithubRepos::new(&self, name, rt)
     }
 }

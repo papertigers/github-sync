@@ -4,3 +4,7 @@ token = "foobarbazfoobarbazfoobarbazfoobarbaz"
 organizations = [
     "illumos",
 ]
+
+users = [
+    "papertigers",
+]

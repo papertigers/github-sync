@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 mod config;
 mod github;
-use github::{Github, Repo};
+use github::{Github, Repo, RepoType};
 
 #[derive(Clone)]
 struct Ctx {
@@ -21,7 +21,7 @@ fn create_logger() -> Logger {
     Logger::root(slog_term::FullFormat::new(plain).build().fuse(), o!())
 }
 
-fn process_repo(ctx: &mut Ctx, repo: Repo) -> Result<()> {
+fn sync_repo(ctx: &mut Ctx, repo: Repo) -> Result<()> {
     let path = ctx.dir.join(repo.full_name);
     info!(ctx.log, "processing {} into {:?}", repo.name, path);
 
@@ -30,15 +30,15 @@ fn process_repo(ctx: &mut Ctx, repo: Repo) -> Result<()> {
     Ok(())
 }
 
-fn process_org<O: AsRef<str>>(ctx: Ctx, org: O) -> Result<()> {
-    let org = org.as_ref();
+fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) -> Result<()> {
+    let name = name.as_ref();
 
     let errors: Vec<_> = ctx
         .gh
-        .get_org_repos(org)
+        .get_repos(name, rt)
         .into_iter()
         .par_bridge()
-        .map_with(ctx.clone(), |c, r| process_repo(c, r?))
+        .map_with(ctx.clone(), |c, r| sync_repo(c, r?))
         .filter(|r| r.is_err())
         .collect();
 
@@ -95,8 +95,16 @@ fn main() -> Result<()> {
         .build_global()
         .context("failed to build thread pool")?;
 
-    for org in config.organizations {
-        process_org(ctx.clone(), org)?;
+    if let Some(orgs) = config.organizations {
+        for org in orgs {
+            process_repos(ctx.clone(), org, RepoType::Org)?;
+        }
+    }
+
+    if let Some(users) = config.users {
+        for user in users {
+            process_repos(ctx.clone(), user, RepoType::User)?;
+        }
     }
 
     Ok(())

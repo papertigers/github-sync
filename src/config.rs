@@ -7,7 +7,8 @@ use std::path::Path;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    pub organizations: BTreeSet<String>,
+    pub organizations: Option<BTreeSet<String>>,
+    pub users: Option<BTreeSet<String>>,
     pub user: Option<String>,
     pub token: Option<String>,
 }
