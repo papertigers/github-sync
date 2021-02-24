@@ -1,0 +1,6 @@
+user = "papertigers"
+token = "foobarbazfoobarbazfoobarbazfoobarbaz"
+
+organizations = [
+    "illumos",
+]
