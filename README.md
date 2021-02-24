@@ -27,6 +27,8 @@ Note: a user and token are not required but github severely limits API calls
 without them. For generating a token see the [creating a personal access token]
 article from github.
 
+See [example.toml](example.toml) for all configuration options.
+
 [creating a personal access token]: https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token
 
 ```toml
