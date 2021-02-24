@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 use slog::*;
@@ -33,7 +33,7 @@ fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
                 if rc.code() == git2::ErrorCode::Exists {
                     git::update_repo(&path, repo)?;
                 } else {
-                    return Err(e);
+                    return Err(anyhow!("{} - {}", repo.name, e));
                 }
             }
         }
