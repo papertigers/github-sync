@@ -124,7 +124,10 @@ impl Github {
         T: Into<Option<String>>,
     {
         let mut headers = header::HeaderMap::new();
-        headers.append(header::ACCEPT, header::HeaderValue::from_static(APIVERSION));
+        headers.append(
+            header::ACCEPT,
+            header::HeaderValue::from_static(APIVERSION),
+        );
 
         Self {
             user: user.into(),
@@ -152,7 +155,8 @@ impl Github {
         let mut builder = self.client.request(method, url);
 
         if self.user.is_some() {
-            builder = builder.basic_auth(self.user.clone().unwrap(), self.token.clone());
+            builder = builder
+                .basic_auth(self.user.clone().unwrap(), self.token.clone());
         }
 
         if let Some(query) = query {

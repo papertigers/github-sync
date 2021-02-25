@@ -43,7 +43,15 @@ pub fn clone_or_update<P: AsRef<Path>>(path: P, repo: &Repo) -> Result<()> {
     if !path.exists() {
         let mut git_cmd = git2::build::RepoBuilder::new();
         git_cmd.branch(&repo.default_branch);
-        git_cmd.clone(&repo.clone_url, path)?;
+        if let Err(ge) = git_cmd.clone(&repo.clone_url, path) {
+            match ge.code() {
+                // We know github thinks the repo exists, but it's likely an
+                // empty repo and we are trying to clone a specific branch
+                // that doesn't yet exist.
+                git2::ErrorCode::NotFound => return Ok(()),
+                _ => return Err(ge.into()),
+            }
+        }
     } else {
         update_repo(path)?
     }
