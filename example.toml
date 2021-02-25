@@ -1,6 +1,10 @@
 user = "papertigers"
 token = "foobarbazfoobarbazfoobarbazfoobarbaz"
 
+ignore = [
+    "illumos/opengrok",
+]
+
 organizations = [
     "illumos",
     "omniosorg",

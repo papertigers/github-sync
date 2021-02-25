@@ -16,6 +16,7 @@ pub struct Config {
     pub organizations: Option<BTreeSet<String>>,
     pub users: Option<BTreeSet<String>>,
     pub owner: Option<HashMap<String, OwnerOpts>>,
+    pub ignore: Option<BTreeSet<String>>,
     pub user: Option<String>,
     pub token: Option<String>,
 }

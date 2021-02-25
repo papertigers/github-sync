@@ -3,18 +3,21 @@ use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 use slog::*;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 mod config;
 mod git;
 mod github;
+use config::Config;
 use github::{Github, Repo, RepoType};
 
 #[derive(Clone)]
 struct Ctx {
+    config: Arc<Config>,
     log: Arc<Logger>,
     dir: PathBuf,
     gh: Arc<Github>,
+    errors: Arc<Mutex<Vec<anyhow::Error>>>,
 }
 
 fn create_logger() -> Logger {
@@ -23,6 +26,12 @@ fn create_logger() -> Logger {
 }
 
 fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
+    if let Some(ref ignore_list) = ctx.config.ignore {
+        if ignore_list.contains(&repo.full_name) {
+            return Ok(());
+        }
+    }
+
     let path = ctx.dir.join(&repo.full_name);
 
     // attempt to clone the repo first
@@ -39,15 +48,14 @@ fn process_owner_repos(ctx: Ctx, repos: &[Repo]) {
         .into_par_iter()
         .map_with(ctx.clone(), |c, r| sync_repo(c, r))
         .filter(|r| r.is_err())
+        .map(Result::unwrap_err)
         .collect();
 
-    // XXX For now log errors in a non fatal way.
-    for e in errors {
-        error!(ctx.log, "{:?}", e);
-    }
+    let mut lock = ctx.errors.lock().unwrap();
+    lock.extend(errors.into_iter());
 }
 
-fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) -> Result<()> {
+fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) {
     let name = name.as_ref();
 
     let errors: Vec<_> = ctx
@@ -57,14 +65,11 @@ fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) -> Result<()> {
         .par_bridge()
         .map_with(ctx.clone(), |c, r| sync_repo(c, &r?))
         .filter(|r| r.is_err())
+        .map(Result::unwrap_err)
         .collect();
 
-    // XXX For now log errors in a non fatal way.
-    for e in errors {
-        error!(ctx.log, "{:?}", e);
-    }
-
-    Ok(())
+    let mut lock = ctx.errors.lock().unwrap();
+    lock.extend(errors.into_iter());
 }
 
 fn main() -> Result<()> {
@@ -91,11 +96,14 @@ fn main() -> Result<()> {
 
     // Safe unwrap because "CONFIG" is a required argument.
     let config = config::Config::from_file(matches.opt_str("c").unwrap())?;
+    let gh = Arc::new(Github::new(config.user.clone(), config.token.clone()));
 
     let mut ctx = Ctx {
+        config: Arc::new(config),
         log: Arc::new(create_logger()),
         dir: PathBuf::new(),
-        gh: Arc::new(Github::new(config.user, config.token)),
+        gh,
+        errors: Default::default(),
     };
 
     if let Some(path) = matches.opt_str("d") {
@@ -112,7 +120,7 @@ fn main() -> Result<()> {
         .build_global()
         .context("failed to build thread pool")?;
 
-    if let Some(owner) = config.owner {
+    if let Some(ref owner) = ctx.config.owner {
         for (ref o, opts) in owner {
             let (repos, errors): (Vec<_>, Vec<_>) = opts
                 .repos
@@ -120,28 +128,38 @@ fn main() -> Result<()> {
                 .map(|n| ctx.gh.get_single_repo(o, n))
                 .partition(Result::is_ok);
             let repos: Vec<_> = repos.into_iter().map(Result::unwrap).collect();
-            let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
 
-            // XXX For now log errors in a non fatal way.
-            for e in errors {
-                error!(ctx.log, "{}", e);
-            }
+            let mut lock = ctx.errors.lock().unwrap();
+            lock.extend(errors.into_iter().map(Result::unwrap_err));
+            drop(lock);
 
             process_owner_repos(ctx.clone(), &repos);
         }
     }
 
-    if let Some(orgs) = config.organizations {
+    if let Some(ref orgs) = ctx.config.organizations {
         for org in orgs {
-            process_repos(ctx.clone(), org, RepoType::Org)?;
+            process_repos(ctx.clone(), org, RepoType::Org);
         }
     }
 
-    if let Some(users) = config.users {
+    if let Some(ref users) = ctx.config.users {
         for user in users {
-            process_repos(ctx.clone(), user, RepoType::User)?;
+            process_repos(ctx.clone(), user, RepoType::User);
         }
     }
+
+    // Print summary
+    let lock = ctx.errors.lock().unwrap();
+    for error in lock.iter() {
+        error!(ctx.log, "{}", error);
+    }
+
+    info!(
+        ctx.log,
+        "finished processing repos, encountered {} error(s)",
+        lock.len()
+    );
 
     Ok(())
 }
