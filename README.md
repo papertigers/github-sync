@@ -4,11 +4,7 @@ The goal of this tool is to iterate over all of an Organization's repositories,
 a user's repositories or a list of individual repositories and keep them in
 sync locally. One can use the `-t` flag to specify a number of threads which
 will control how many threads are actively pulling repos locally. Currently we
-have opted to log errors rather than fail hard.
-
-It currently seems to handle force pushes okay, but I have only done basic
-testing. It currently doesn't pull all branches locally but that may be a nice
-change to make in the future.
+have opted to log errors at the end of a run rather than fail hard.
 
 ### Usage
 
@@ -45,8 +41,7 @@ repos = [
 ### Example Run
 
 ```
-❯ cargo r -- -c example.toml -d /tmp
-    Finished dev [unoptimized + debuginfo] target(s) in 0.21s
-     Running `target/debug/github-sync -c example.toml -d /tmp`
-Feb 24 14:37:19.738 INFO synced notracking into "/tmp/papertigers/notracking"
+❯ github-sync -d /tmp -c test.toml
+Feb 25 14:19:19.193 INFO synced notracking into "/tmp/papertigers/notracking"
+Feb 25 14:19:19.193 INFO finished processing 1 repo(s), encountered 0 error(s)
 ```

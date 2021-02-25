@@ -3,6 +3,7 @@ use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 use slog::*;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 mod config;
@@ -17,6 +18,7 @@ struct Ctx {
     log: Arc<Logger>,
     dir: PathBuf,
     gh: Arc<Github>,
+    processed: Arc<AtomicUsize>,
     errors: Arc<Mutex<Vec<anyhow::Error>>>,
 }
 
@@ -32,9 +34,10 @@ fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
         }
     }
 
+    ctx.processed.fetch_add(1, Ordering::SeqCst);
+
     let path = ctx.dir.join(&repo.full_name);
 
-    // attempt to clone the repo first
     if let Err(e) = git::clone_or_update(&path, repo) {
         return Err(anyhow!("[{}] failed sync - {}", repo.full_name, e));
     };
@@ -103,6 +106,7 @@ fn main() -> Result<()> {
         log: Arc::new(create_logger()),
         dir: PathBuf::new(),
         gh,
+        processed: Arc::new(AtomicUsize::new(0)),
         errors: Default::default(),
     };
 
@@ -157,7 +161,8 @@ fn main() -> Result<()> {
 
     info!(
         ctx.log,
-        "finished processing repos, encountered {} error(s)",
+        "finished processing {} repo(s), encountered {} error(s)",
+        ctx.processed.load(Ordering::SeqCst),
         lock.len()
     );
 

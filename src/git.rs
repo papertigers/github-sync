@@ -28,11 +28,10 @@ fn do_reset<'a>(
     Ok(())
 }
 
-fn update_repo<P: AsRef<Path>>(path: P, repo: &Repo) -> Result<()> {
+fn update_repo<P: AsRef<Path>>(path: P) -> Result<()> {
     let r = git2::Repository::open(path.as_ref())?;
-    let remote_branch = &repo.default_branch;
     let mut remote = r.find_remote("origin")?;
-    if let Some(fetch_commit) = do_fetch(&r, &[remote_branch], &mut remote)? {
+    if let Some(fetch_commit) = do_fetch(&r, &[], &mut remote)? {
         do_reset(&r, fetch_commit)?;
     }
 
@@ -42,9 +41,11 @@ fn update_repo<P: AsRef<Path>>(path: P, repo: &Repo) -> Result<()> {
 pub fn clone_or_update<P: AsRef<Path>>(path: P, repo: &Repo) -> Result<()> {
     let path = path.as_ref();
     if !path.exists() {
-        git2::Repository::clone(&repo.clone_url, path)?;
+        let mut git_cmd = git2::build::RepoBuilder::new();
+        git_cmd.branch(&repo.default_branch);
+        git_cmd.clone(&repo.clone_url, path)?;
     } else {
-        update_repo(path, repo)?
+        update_repo(path)?
     }
 
     Ok(())
