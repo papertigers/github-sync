@@ -36,7 +36,7 @@ fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
 
     // attempt to clone the repo first
     if let Err(e) = git::clone_or_update(&path, repo) {
-        return Err(anyhow!("[{}] failed sync - {}", repo.name, e));
+        return Err(anyhow!("[{}] failed sync - {}", repo.full_name, e));
     };
 
     info!(ctx.log, "synced {} into {:?}", repo.name, path);
