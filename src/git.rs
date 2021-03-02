@@ -3,18 +3,12 @@ use anyhow::Result;
 use std::path::Path;
 
 fn do_fetch<'a>(
-    repo: &'a git2::Repository,
-    refs: &[&str],
     remote: &'a mut git2::Remote,
-) -> Result<Option<git2::AnnotatedCommit<'a>>, git2::Error> {
+    refs: &[&str],
+) -> Result<(), git2::Error> {
     let mut fo = git2::FetchOptions::new();
     fo.download_tags(git2::AutotagOption::All);
-    remote.fetch(refs, Some(&mut fo), None)?;
-    if let Ok(fetch_head) = repo.find_reference("FETCH_HEAD") {
-        return Ok(Some(repo.reference_to_annotated_commit(&fetch_head)?));
-    }
-
-    Ok(None)
+    remote.fetch(refs, Some(&mut fo), None)
 }
 
 fn do_reset<'a>(
@@ -24,17 +18,17 @@ fn do_reset<'a>(
     let remote_obj = repo.find_commit(fetch_commit.id())?.into_object();
     let mut checkout = git2::build::CheckoutBuilder::new();
     checkout.force();
-    repo.reset(&remote_obj, git2::ResetType::Hard, None)?;
-    Ok(())
+    repo.reset(&remote_obj, git2::ResetType::Hard, None)
 }
 
-fn update_repo<P: AsRef<Path>>(path: P) -> Result<()> {
+fn update_repo<P: AsRef<Path>>(path: P, branch: &str) -> Result<()> {
     let r = git2::Repository::open(path.as_ref())?;
     let mut remote = r.find_remote("origin")?;
-    if let Some(fetch_commit) = do_fetch(&r, &[], &mut remote)? {
-        do_reset(&r, fetch_commit)?;
+    do_fetch(&mut remote, &[])?;
+    let refname = format!("refs/remotes/origin/{}", branch);
+    if let Ok(commit) = r.find_reference(&refname) {
+        do_reset(&r, r.reference_to_annotated_commit(&commit)?)?;
     }
-
     Ok(())
 }
 
@@ -53,7 +47,7 @@ pub fn clone_or_update<P: AsRef<Path>>(path: P, repo: &Repo) -> Result<()> {
             }
         }
     } else {
-        update_repo(path)?
+        update_repo(path, &repo.default_branch)?
     }
 
     Ok(())
