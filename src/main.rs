@@ -154,8 +154,8 @@ fn main() -> Result<()> {
     }
 
     // Print summary
-    let lock = ctx.errors.lock().unwrap();
-    for error in lock.iter() {
+    let errors = ctx.errors.lock().unwrap();
+    for error in errors.iter() {
         error!(ctx.log, "{}", error);
     }
 
@@ -163,8 +163,11 @@ fn main() -> Result<()> {
         ctx.log,
         "finished processing {} repo(s), encountered {} error(s)",
         ctx.processed.load(Ordering::SeqCst),
-        lock.len()
+        errors.len()
     );
 
+    if errors.len() != 0 {
+        std::process::exit(1);
+    }
     Ok(())
 }
