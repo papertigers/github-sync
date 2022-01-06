@@ -49,7 +49,7 @@ fn sync_repo(ctx: &mut Ctx, repo: &Repo) -> Result<()> {
 fn process_owner_repos(ctx: Ctx, repos: &[Repo]) {
     let errors: Vec<_> = repos
         .into_par_iter()
-        .map_with(ctx.clone(), |c, r| sync_repo(c, r))
+        .map_with(ctx.clone(), sync_repo)
         .filter(|r| r.is_err())
         .map(Result::unwrap_err)
         .collect();

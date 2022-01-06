@@ -1,8 +1,10 @@
 [package]
 name = "github-sync"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Mike Zeller <mike@mikezeller.net>"]
 edition = "2018"
+description = "Github repo backup utility"
+license = "MIT"
 
 [dependencies]
 anyhow = "1.0.38"
@@ -16,14 +18,10 @@ slog-term = "2.8.0"
 rayon = "1.5.0"
 git2 = "0.13.17"
 
-[dependencies.openssl]
-version = "0.10"
-features = [ "vendored" ]
-
 [dependencies.serde]
 version = "1.0.123"
 features = [ "derive" ]
 
 [dependencies.reqwest]
 version = "0.11.1"
-features = [ "blocking", "json" ]
+features = [ "blocking", "json", "native-tls-vendored" ]

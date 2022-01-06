@@ -58,10 +58,8 @@ impl GithubRepos {
         let page = ("page", page);
         let per_page = ("per_page", self.per_page);
 
-        let mut query: Vec<&dyn Serialize> = Vec::new();
-        query.push(&("type", "public"));
-        query.push(&per_page);
-        query.push(&page);
+        let query: Vec<&dyn Serialize> =
+            vec![&("type", "public"), &per_page, &page];
 
         let req = self.client.request(Method::GET, &self.path, Some(&query))?;
         let res = self.client.execute(req)?;
@@ -199,6 +197,6 @@ impl Github {
 
     /// Get all of the public repos for a github user or organization.
     pub fn get_repos(&self, name: &str, rt: RepoType) -> GithubRepos {
-        GithubRepos::new(&self, name, rt)
+        GithubRepos::new(self, name, rt)
     }
 }
