@@ -16,7 +16,7 @@ getopts = "0.2.21"
 slog = "2.7.0"
 slog-term = "2.8.0"
 rayon = "1.5.0"
-git2 = "0.13.17"
+git2 = "0.14"
 
 [dependencies.serde]
 version = "1.0.123"
