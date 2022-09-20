@@ -18,7 +18,7 @@ fn do_reset<'a>(
     let remote_obj = repo.find_commit(fetch_commit.id())?.into_object();
     let mut checkout = git2::build::CheckoutBuilder::new();
     checkout.force();
-    repo.reset(&remote_obj, git2::ResetType::Hard, None)
+    repo.reset(&remote_obj, git2::ResetType::Hard, Some(&mut checkout))
 }
 
 fn update_repo<P: AsRef<Path>>(path: P, branch: &str) -> Result<()> {

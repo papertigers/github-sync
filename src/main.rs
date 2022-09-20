@@ -23,6 +23,7 @@ struct Ctx {
 }
 
 fn create_logger() -> Logger {
+    // TODO: Create dtrace_slog drain
     let plain = slog_term::PlainSyncDecorator::new(std::io::stdout());
     Logger::root(slog_term::FullFormat::new(plain).build().fuse(), o!())
 }
@@ -76,6 +77,7 @@ fn process_repos<N: AsRef<str>>(ctx: Ctx, name: N, rt: RepoType) {
 }
 
 fn main() -> Result<()> {
+    //usdt::register_probes().expect("failed to register dtrace probes");
     let args: Vec<String> = std::env::args().collect();
     let program = &args[0].clone();
     let brief = format!("Usage: {} [options] -c CONFIG", program);
